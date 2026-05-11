@@ -46,6 +46,62 @@ function initMap() {
   showToast("🗺️ Map ready — click Locate Me!");
 }
 
+//===========================================================================================
+const provinceSelect = document.getElementById('provinceSelect');
+const communeSelect = document.getElementById('communeSelect');
+
+// 1. Populate Provinces on load
+async function loadProvinces() {
+    // You can host a JSON file or use an API
+    const response = await fetch('https://raw.githubusercontent.com/khmerdev/cambodia-administrative-db/master/provinces.json');
+    const provinces = await response.json();
+    
+    provinces.forEach(p => {
+        let opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name_kh || p.name_en;
+        provinceSelect.appendChild(opt);
+    });
+}
+
+// 2. Handle Province Change
+provinceSelect.addEventListener('change', async (e) => {
+    const provinceId = e.target.value;
+    communeSelect.innerHTML = '<option value="">Select Commune</option>';
+    
+    if (!provinceId) {
+        communeSelect.disabled = true;
+        return;
+    }
+
+    // Fetch communes for this specific province
+    const response = await fetch(`/api/locations/communes?provinceId=${provinceId}`);
+    const communes = await response.json();
+    
+    communes.forEach(c => {
+        let opt = document.createElement('option');
+        opt.value = `${c.lat},${c.lng}`; // Store coordinates as value
+        opt.textContent = c.name_kh;
+        communeSelect.appendChild(opt);
+    });
+    
+    communeSelect.disabled = false;
+});
+
+// 3. Handle Commune selection to move the Map
+communeSelect.addEventListener('change', (e) => {
+    if (!e.target.value) return;
+    
+    const [lat, lng] = e.target.value.split(',').map(Number);
+    
+    // Update State and Move Map
+    state.userLat = lat;
+    state.userLng = lng;
+    
+    placeUserMarker(lat, lng);
+    searchLaundry(); // Trigger the search in the new province/commune
+});
+//===========================================================================================
 // ===== LOCATE USER =====
 async function locateUser() {
   if (!navigator.geolocation) {
@@ -144,27 +200,25 @@ async function searchLaundry() {
   showLoadingList();
   clearMarkers();
 
-  try {
-    const res = await fetch(`/api/nearby?lat=${state.userLat}&lng=${state.userLng}&radius=${state.selectedRadius}`);
-    const data = await res.json();
+  // Use the Google Places Service instead of your local /api/nearby
+  const service = new google.maps.places.PlacesService(state.map);
+  const request = {
+    location: { lat: state.userLat, lng: state.userLng },
+    radius: state.selectedRadius,
+    keyword: 'laundry' // This will search for បោកអ៊ុត and laundry
+  };
 
-    if (data.error) {
-      showToast("❌ " + data.error);
-      showEmptyState();
-      return;
+  service.nearbySearch(request, (results, status) => {
+    if (status === google.maps.places.PlacesServiceStatus.OK) {
+      state.places = results;
+      sortAndRender();
+      showToast(`🧺 Found ${results.length} laundry shops nearby!`);
+    } else {
+      state.places = [];
+      sortAndRender();
+      showToast("😕 No laundry shops found in this area.");
     }
-
-    state.places = data.results || [];
-    sortAndRender();
-    showToast(
-      state.places.length > 0
-        ? `🧺 Found ${state.places.length} laundry shop${state.places.length > 1 ? "s" : ""} nearby!`
-        : "😕 No laundry shops found. Try a larger radius."
-    );
-  } catch (err) {
-    showToast("❌ Server error. Is the backend running?");
-    showEmptyState();
-  }
+  });
 }
 
 // ===== SORT & RENDER =====

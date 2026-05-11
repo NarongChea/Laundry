@@ -46,19 +46,23 @@ app.get("/api/nearby", async (req, res) => {
       "places.rating,places.userRatingCount,places.currentOpeningHours," +
       "places.regularOpeningHours,places.photos,places.businessStatus";
 
-    const body = {
-      includedTypes: ["laundry", "dry_cleaning_laundry"],
-      maxResultCount: 20,
-      locationRestriction: {
-        circle: {
-          center: {
-            latitude: parseFloat(lat),
-            longitude: parseFloat(lng),
-          },
-          radius: parseFloat(radius),
-        },
+    // Inside app.get("/api/nearby"...)
+const body = {
+  includedTypes: ["laundry"],
+  // The New API (v1) max is 20 for searchNearby. 
+  // To get more, we prioritize by distance so it fills the zone correctly.
+  maxResultCount: 20, 
+  locationRestriction: {
+    circle: {
+      center: {
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lng),
       },
-    };
+      radius: parseFloat(radius), // This ensures it only looks in your 200m, 500m, etc.
+    },
+  },
+  rankPreference: "DISTANCE" 
+};
 
     const response = await fetch(
       "https://places.googleapis.com/v1/places:searchNearby",
@@ -82,15 +86,36 @@ app.get("/api/nearby", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// Example helper for location data
+app.get("/api/locations/communes", (req, res) => {
+  const { provinceId } = req.query;
+  // Here you would filter your JSON data or Query a Database
+  // For now, returning dummy data as an example
+  const mockCommunes = [
+    { name_kh: "ស្ទឹងត្រង់", lat: 12.2833, lng: 105.4833 },
+    { name_kh: "កំពង់ចាម", lat: 11.9933, lng: 105.4633 }
+  ];
+  res.json(mockCommunes);
+});
 // ── Helpers ───────────────────────────────────────
 function normalizePlace(p) {
   return {
     place_id: p.id,
     name: p.displayName?.text || "Unknown",
-    address: p.formattedAddress || "",
+    vicinity: p.formattedAddress || "",
     rating: p.rating || null,
-    location: p.location,
+    user_ratings_total: p.userRatingCount || 0,
+    // This exact structure is required for your frontend dist(p) function
+    geometry: {
+      location: {
+        lat: p.location?.latitude,
+        lng: p.location?.longitude,
+      },
+    },
+    opening_hours: {
+      open_now: p.currentOpeningHours?.openNow || false,
+    },
+    photos: p.photos || []
   };
 }
 

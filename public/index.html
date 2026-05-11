@@ -28,6 +28,21 @@
       <div class="header-actions">
         <div class="radius-selector">
           <label>Radius</label>
+          <div class="location-selectors">
+  <div class="select-group">
+    <label>Province (ខេត្ត/ក្រុង)</label>
+    <select id="provinceSelect" class="sort-select">
+      <option value="">Select Province</option>
+    </select>
+  </div>
+  
+  <div class="select-group">
+    <label>District/Commune (ស្រុក/ឃុំ)</label>
+    <select id="communeSelect" class="sort-select" disabled>
+      <option value="">Select Commune</option>
+    </select>
+  </div>
+</div>
           <div class="radius-btns">
             <button class="radius-btn" data-r="300">300m</button>
             <button class="radius-btn active" data-r="500">500m</button>
@@ -47,6 +62,7 @@
     <!-- Location Banner -->
     <div class="location-banner" id="locationBanner" style="display:none">
       <div class="loc-left">
+        
         <div class="loc-pulse"><span></span></div>
         <div class="loc-info">
           <div class="loc-label">Your Location</div>
