@@ -130,7 +130,7 @@
     <script src="js/app.js"></script>
     <script>
       // Load Google Maps after getting API key from server
-      fetch("/api/config")
+      fetch("https://laundry-finder.onrender.com/api/config")
         .then((r) => r.json())
         .then((cfg) => {
           if (cfg.error) {
