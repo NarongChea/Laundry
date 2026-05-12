@@ -10,7 +10,12 @@ const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 // ── Middleware ─────────────────────────────────────
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://narongchea.github.io",
+    "http://localhost:3000"
+  ]
+}));
 app.use(express.json());
 
 // ✅ Serve frontend from root directory
